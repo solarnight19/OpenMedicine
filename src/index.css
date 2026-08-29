@@ -1,1 +1,129 @@
 @import "tailwindcss";
+
+@theme {
+  --font-display: "Bricolage Grotesque", "IBM Plex Sans", sans-serif;
+  --font-body: "IBM Plex Sans", sans-serif;
+  --font-mono: "IBM Plex Mono", monospace;
+
+  --color-ink: #101820;
+  --color-ink-2: #18232e;
+  --color-ink-3: #22303d;
+  --color-paper: #f2f3ed;
+  --color-card: #fbfbf7;
+  --color-line: #dde1d3;
+  --color-line-2: #ccd2c2;
+  --color-body: #232d38;
+  --color-mute: #66707b;
+  --color-faint: #8b949d;
+
+  --color-moss: #177e5b;
+  --color-moss-deep: #0e5c42;
+  --color-moss-soft: #e0efe6;
+  --color-pen: #cf4136;
+  --color-pen-soft: #f9e6e1;
+  --color-amber: #c9821d;
+  --color-amber-soft: #f8ecd7;
+  --color-cobalt: #33598f;
+  --color-cobalt-soft: #e4ebf4;
+
+  --shadow-lift: 0 1px 2px rgba(16, 24, 32, 0.06), 0 6px 20px -6px rgba(16, 24, 32, 0.14);
+  --shadow-pop: 0 2px 4px rgba(16, 24, 32, 0.08), 0 18px 44px -12px rgba(16, 24, 32, 0.28);
+}
+
+html,
+body {
+  margin: 0;
+  background: var(--color-paper);
+  color: var(--color-body);
+  font-family: var(--font-body);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* layered ambient paper: faint ruling + dot grid */
+.paper-bg {
+  background-color: var(--color-paper);
+  background-image:
+    radial-gradient(rgba(16, 24, 32, 0.055) 1px, transparent 1px),
+    linear-gradient(rgba(16, 24, 32, 0.028) 1px, transparent 1px);
+  background-size: 22px 22px, 100% 34px;
+}
+
+.ink-bg {
+  background-color: var(--color-ink);
+  background-image:
+    radial-gradient(rgba(242, 243, 237, 0.05) 1px, transparent 1px),
+    linear-gradient(160deg, rgba(23, 126, 91, 0.16), transparent 42%);
+  background-size: 20px 20px, 100% 100%;
+}
+
+.hatch-band {
+  background-image: repeating-linear-gradient(
+    -45deg,
+    rgba(16, 24, 32, 0.1) 0 2px,
+    transparent 2px 9px
+  );
+}
+
+.dash-t { border-top: 1.5px dashed var(--color-line-2); }
+.dash-b { border-bottom: 1.5px dashed var(--color-line-2); }
+
+::selection {
+  background: var(--color-moss);
+  color: #f5faf7;
+}
+
+*::-webkit-scrollbar { width: 10px; height: 10px; }
+*::-webkit-scrollbar-thumb { background: #c3cab9; border-radius: 8px; border: 2px solid var(--color-paper); }
+*::-webkit-scrollbar-track { background: transparent; }
+
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes popIn {
+  0% { opacity: 0; transform: scale(0.94) translateY(8px); }
+  100% { opacity: 1; transform: scale(1) translateY(0); }
+}
+@keyframes toastIn {
+  from { opacity: 0; transform: translateX(24px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+@keyframes stampIn {
+  0% { opacity: 0; transform: scale(1.25) rotate(-8deg); }
+  60% { opacity: 1; transform: scale(0.97) rotate(-3deg); }
+  100% { opacity: 1; transform: scale(1) rotate(-3deg); }
+}
+@keyframes pulseDot {
+  0%, 100% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(1.6); opacity: 0.55; }
+}
+
+.anim-fade-up { animation: fadeUp 0.4s cubic-bezier(0.2, 0.7, 0.3, 1) both; }
+.anim-fade-in { animation: fadeIn 0.25s ease both; }
+.anim-pop { animation: popIn 0.28s cubic-bezier(0.2, 0.7, 0.3, 1) both; }
+.anim-toast { animation: toastIn 0.3s cubic-bezier(0.2, 0.7, 0.3, 1) both; }
+.anim-stamp { animation: stampIn 0.45s cubic-bezier(0.2, 0.7, 0.3, 1) 0.15s both; }
+.anim-pulse-dot { animation: pulseDot 2.2s ease-in-out infinite; }
+
+.stagger > * { animation: fadeUp 0.45s cubic-bezier(0.2, 0.7, 0.3, 1) both; }
+.stagger > *:nth-child(1) { animation-delay: 0.02s; }
+.stagger > *:nth-child(2) { animation-delay: 0.07s; }
+.stagger > *:nth-child(3) { animation-delay: 0.12s; }
+.stagger > *:nth-child(4) { animation-delay: 0.17s; }
+.stagger > *:nth-child(5) { animation-delay: 0.22s; }
+.stagger > *:nth-child(6) { animation-delay: 0.27s; }
+
+.ring-arc {
+  transition: stroke-dashoffset 1s cubic-bezier(0.25, 0.7, 0.25, 1) 0.2s;
+}
+.bar-arc {
+  transition: width 0.8s cubic-bezier(0.25, 0.7, 0.25, 1) 0.15s;
+}
+
+input[type="range"] {
+  accent-color: var(--color-moss);
+}
