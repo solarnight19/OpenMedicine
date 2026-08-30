@@ -6,6 +6,116 @@ import { IconUpload, IconFile, IconCheck, IconAlert, IconDownload, IconCopy, Ico
 
 export type ImportTarget = { kind: "new"; name: string } | { kind: "existing"; id: string };
 
+/* ============ The exact format, shown verbatim ============ */
+
+export const FORMAT_HEADER = "prompt,answer,wrong_1,wrong_2,wrong_3,explanation,tags,difficulty";
+
+function ColoredHeader() {
+  const C = ",";
+  return (
+    <span className="whitespace-pre">
+      <span className="text-[#7fc8a8]">prompt</span>
+      <span className="text-paper/25">{C}</span>
+      <span className="text-[#7fc8a8]">answer</span>
+      <span className="text-paper/25">{C}</span>
+      <span className="text-[#e8b968]">wrong_1</span>
+      <span className="text-paper/25">{C}</span>
+      <span className="text-[#e8b968]">wrong_2</span>
+      <span className="text-paper/25">{C}</span>
+      <span className="text-[#e8b968]">wrong_3</span>
+      <span className="text-paper/25">{C}</span>
+      <span className="text-paper/40">explanation</span>
+      <span className="text-paper/25">{C}</span>
+      <span className="text-paper/40">tags</span>
+      <span className="text-paper/25">{C}</span>
+      <span className="text-paper/40">difficulty</span>
+    </span>
+  );
+}
+
+export function FormatStrip({ compact = false }: { compact?: boolean }) {
+  const [copied, setCopied] = useState(false);
+  const copy = async () => {
+    try {
+      await navigator.clipboard.writeText(FORMAT_HEADER);
+    } catch {
+      const ta = document.createElement("textarea");
+      ta.value = FORMAT_HEADER;
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand("copy");
+      ta.remove();
+    }
+    setCopied(true);
+    window.setTimeout(() => setCopied(false), 1500);
+  };
+
+  return (
+    <div className="bg-ink rounded-md overflow-hidden anim-fade-up">
+      <div className={`grid ${compact ? "" : "lg:grid-cols-[1.65fr_1fr]"}`}>
+        <div>
+          <div className="flex items-center justify-between gap-3 px-4 py-2.5 border-b border-paper/10">
+            <span className="font-mono text-[10px] uppercase tracking-[0.2em] text-paper/50">
+              Exact format · row one of your CSV
+            </span>
+            <button
+              onClick={copy}
+              className={`inline-flex items-center gap-1.5 font-mono text-[10.5px] uppercase tracking-wider px-2.5 py-1.5 rounded-sm border transition-all cursor-pointer ${
+                copied
+                  ? "border-[#7fc8a8]/60 text-[#7fc8a8] bg-[#7fc8a8]/10"
+                  : "border-paper/20 text-paper/70 hover:text-paper hover:border-paper/50"
+              }`}
+            >
+              {copied ? <IconCheck /> : <IconCopy />}
+              {copied ? "Copied" : "Copy header"}
+            </button>
+          </div>
+          <pre className="font-mono text-[11.5px] sm:text-[12.5px] leading-[1.8] text-paper px-4 py-3.5 overflow-x-auto">
+            <ColoredHeader />
+          </pre>
+          <div className="border-t border-paper/10 px-4 py-3">
+            <div className="font-mono text-[10px] uppercase tracking-[0.2em] text-paper/45 mb-1.5">
+              Smallest file that works
+            </div>
+            <pre className="font-mono text-[11.5px] leading-[1.7] text-[#cfe6d9] overflow-x-auto">
+{`prompt,answer,wrong_1,wrong_2
+"What is 2 + 2?",4,3,5`}
+            </pre>
+          </div>
+        </div>
+        {!compact && (
+          <div className="border-t lg:border-t-0 lg:border-l border-paper/10 px-4 py-4">
+            <div className="font-mono text-[10px] uppercase tracking-[0.2em] text-paper/45 mb-3">Legend</div>
+            <ul className="space-y-2.5">
+              <li className="flex items-start gap-2.5 text-[12.5px] text-paper/80 leading-snug">
+                <span className="mt-1 w-2 h-2 rounded-full bg-[#7fc8a8] shrink-0" />
+                <span><strong className="font-mono text-[11.5px] text-[#7fc8a8]">prompt</strong> +{" "}
+                <strong className="font-mono text-[11.5px] text-[#7fc8a8]">answer</strong> — required on every row.</span>
+              </li>
+              <li className="flex items-start gap-2.5 text-[12.5px] text-paper/80 leading-snug">
+                <span className="mt-1 w-2 h-2 rounded-full bg-[#e8b968] shrink-0" />
+                <span><strong className="font-mono text-[11.5px] text-[#e8b968]">wrong_1…wrong_5</strong> — at least two
+                distractors filled; up to five.</span>
+              </li>
+              <li className="flex items-start gap-2.5 text-[12.5px] text-paper/60 leading-snug">
+                <span className="mt-1 w-2 h-2 rounded-full bg-paper/30 shrink-0" />
+                <span><strong className="font-mono text-[11.5px]">explanation · tags · difficulty</strong> — optional.
+                Tags split on <span className="font-mono text-[11px]">;</span> · difficulty is
+                easy&nbsp;/&nbsp;medium&nbsp;/&nbsp;hard.</span>
+              </li>
+            </ul>
+            <p className="text-[11.5px] text-paper/45 leading-relaxed mt-3.5">
+              Header names are case-insensitive and order-free; <span className="font-mono text-[10.5px]">question</span>,{" "}
+              <span className="font-mono text-[10.5px]">correct</span> and{" "}
+              <span className="font-mono text-[10.5px]">incorrect_…</span> are accepted as aliases.
+            </p>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 /* ================= Import ================= */
 
 export default function ImportView({
@@ -103,6 +213,10 @@ export default function ImportView({
           </div>
         }
       />
+
+      <div className="mb-5">
+        <FormatStrip />
+      </div>
 
       {/* dropzone */}
       <div
@@ -416,6 +530,9 @@ export function FormatGuide({ onNav }: { onNav: (key: string) => void }) {
 
       <div className="grid lg:grid-cols-[1.7fr_1fr] gap-5 items-start">
         <div className="space-y-5">
+          {/* exact format cheat card */}
+          <FormatStrip compact />
+
           {/* spec table */}
           <div className="bg-card border border-line rounded-md overflow-hidden anim-fade-up">
             <table className="w-full text-sm">
