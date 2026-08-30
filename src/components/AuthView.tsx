@@ -83,6 +83,7 @@ export default function AuthView({
               ["CSV-first", "One recognised header format — prompt, answer, distractors and more."],
               ["Open library", "Publish a bank and every clinician in this browser can favourite or clone it."],
               ["Exam conditions", "Shuffled options, flags, countdown timers and full answer review."],
+              ["Installs on your Mac", "Add it to the Dock — its own window, works offline, data never leaves this machine."],
             ].map(([t, d]) => (
               <li key={t} className="flex gap-3 text-[13.5px]">
                 <span className="text-[#57c4ae] mt-0.5 shrink-0"><IconPulse /></span>

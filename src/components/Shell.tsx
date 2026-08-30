@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import type { Bank, LibraryEntry, User } from "../lib/types";
-import { EcgTrace, IconLogo, IconGrid, IconUpload, IconDoc, IconTarget, IconClock, IconBank, IconPlus, IconX, IconGlobe, IconLogout, IconHeart } from "./icons";
+import { EcgTrace, IconLogo, IconGrid, IconUpload, IconDoc, IconTarget, IconClock, IconBank, IconPlus, IconX, IconGlobe, IconLogout, IconHeart, IconDownload, IconCheck } from "./icons";
+import InstallModal from "./InstallModal";
+import { installable, isInstalledApp, onInstallChange } from "../lib/install";
 
 function Barcode() {
   const bars = [3, 1, 2, 4, 1, 2, 1, 3, 2, 1, 4, 1, 2, 3, 1, 2, 1, 3, 1, 2, 4, 1, 2, 1];
@@ -40,11 +42,23 @@ interface ShellProps {
 
 export default function Shell({ activeKey, onNav, banks, library, favorites, user, onLogout, activeBankId, resetKey, children }: ShellProps) {
   const [drawer, setDrawer] = useState(false);
+  const [installOpen, setInstallOpen] = useState(false);
+  const [installState, setInstallState] = useState<"none" | "ready" | "installed">(
+    isInstalledApp() ? "installed" : installable() ? "ready" : "none"
+  );
   const mainRef = useRef<HTMLElement>(null);
 
   useEffect(() => {
     mainRef.current?.scrollTo({ top: 0 });
   }, [resetKey]);
+
+  useEffect(
+    () =>
+      onInstallChange(() =>
+        setInstallState(isInstalledApp() ? "installed" : installable() ? "ready" : "none")
+      ),
+    []
+  );
 
   const navItems = [
     { key: "overview", label: "Overview", icon: <IconGrid /> },
@@ -206,11 +220,32 @@ export default function Shell({ activeKey, onNav, banks, library, favorites, use
       </div>
 
       {/* footer stamp */}
-      <div className="px-5 py-3.5 shrink-0">
+      <div className="px-5 py-3.5 shrink-0 space-y-2.5">
+        <button
+          onClick={() => setInstallOpen(true)}
+          className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-md border text-[12.5px] font-semibold transition-all duration-150 cursor-pointer ${
+            installState === "installed"
+              ? "border-moss/50 bg-moss/15 text-[#57c4ae]"
+              : "border-paper/20 text-paper/75 hover:border-[#57c4ae]/60 hover:text-paper hover:bg-paper/6"
+          }`}
+        >
+          {installState === "installed" ? (
+            <>
+              <IconCheck className="text-[#57c4ae]" /> Running as Mac app
+            </>
+          ) : (
+            <>
+              <IconDownload className="text-[#57c4ae]" /> Install on your Mac
+              {installState === "ready" && (
+                <span className="ml-auto w-2 h-2 rounded-full bg-[#57c4ae] anim-pulse-dot" />
+              )}
+            </>
+          )}
+        </button>
         <Barcode />
         <div className="flex items-center justify-between mt-2">
           <span className="font-mono text-[9px] uppercase tracking-[0.18em] text-paper/35">Form OM-01 · Rev A</span>
-          <span className="font-mono text-[9px] uppercase tracking-[0.18em] text-paper/35">Local demo</span>
+          <span className="font-mono text-[9px] uppercase tracking-[0.18em] text-paper/35">offline ready</span>
         </div>
       </div>
     </div>
@@ -251,6 +286,8 @@ export default function Shell({ activeKey, onNav, banks, library, favorites, use
 
         <main ref={mainRef} className="flex-1 overflow-y-auto paper-bg">{children}</main>
       </div>
+
+      {installOpen && <InstallModal onClose={() => setInstallOpen(false)} />}
     </div>
   );
 }
