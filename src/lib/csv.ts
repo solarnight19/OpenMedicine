@@ -1,7 +1,7 @@
 import type { Difficulty, ParseOutcome, ParsedRow } from "./types";
 
 /**
- * FormFeed CSV format
+ * OpenMedicine CSV format
  * -------------------
  * Header row (case-insensitive, order-free):
  *   prompt | question | q                      required
@@ -138,19 +138,19 @@ export function parseCSV(text: string): ParseOutcome {
 }
 
 export const SAMPLE_CSV = `prompt,answer,wrong_1,wrong_2,wrong_3,explanation,tags,difficulty
-"Which planet has the most confirmed moons, as of recent counts?",Saturn,Jupiter,Uranus,Neptune,"Longnecked Saturn keeps winning the moon census — 146 confirmed at last count.",astronomy;trivia,medium
-"What does the HTTP status code 418 mean?",I'm a teapot,Payment required,Too many requests,Not found,"An April Fools' RFC 2324 easter egg that refused to die.",web;http,easy
-"In music, how many lines does a standard staff have?",5,4,6,7,"Five lines, four spaces — the same since around the 13th century.",music,easy
-"What is the only letter that never appears in a U.S. state name?",Q,X,Z,J,"Scan all fifty: A through Z show up, but never Q.",geography;usa,hard
-"Which data structure works on a first-in, first-out basis?",Queue,Stack,Heap,Tree,"A queue is a line at the shop: first in, first out. ""Heaps"" and ""trees"" branch; stacks pile.",computing,medium
-"Rounded to the nearest percent, what share of Earth's water is fresh water?",3%,10%,27%,1%,"Roughly 97% is saline; most of the 3% that remains is locked in ice.",science;earth,easy`;
+"Which carpal bone is most commonly fractured?",Scaphoid,Lunate,Triquetrum,Pisiform,"Tenderness in the anatomical snuffbox after a fall on an outstretched hand should raise suspicion — the scaphoid's tenuous blood supply risks avascular necrosis.",anatomy;ortho,easy
+"Which dermatome supplies the skin over the umbilicus?",T10,T4,T7,L1,"The classic landmarks: T4 at the nipples, T10 at the belly button — 'T10 for the bellybutton'.",anatomy;neuro,easy
+"Which rotator cuff muscle initiates shoulder abduction?",Supraspinatus,Infraspinatus,Subscapularis,Teres minor,"Supraspinatus abducts the first ~15 degrees; the deltoid then takes over. Infraspinatus and teres minor externally rotate, subscapularis internally rotates.",anatomy;ortho,medium
+"Which enzyme is the target of statins?",HMG-CoA reductase,Cyclooxygenase,Angiotensin-converting enzyme,Xanthine oxidase,"Blocking HMG-CoA reductase cuts hepatic cholesterol synthesis, up-regulating LDL receptors.",pharmacology;cardio,easy
+"Which drug is the antidote for paracetamol (acetaminophen) overdose?",N-acetylcysteine,Naloxone,Flumazenil,Atropine,"NAC replenishes glutathione so the toxic metabolite NAPQI can be detoxified — most effective within 8 hours.",pharmacology;tox,easy
+"Which antibiotic class acts by inhibiting bacterial cell wall synthesis?",Penicillins,Macrolides,Tetracyclines,Fluoroquinolones,"Beta-lactams bind penicillin-binding proteins and weaken peptidoglycan. Macrolides and tetracyclines hit ribosomes; fluoroquinolones hit DNA gyrase.",pharmacology;micro,medium`;
 
 export function downloadSampleCSV() {
   const blob = new Blob([SAMPLE_CSV], { type: "text/csv;charset=utf-8" });
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
   a.href = url;
-  a.download = "formfeed-sample.csv";
+  a.download = "openmedicine-sample.csv";
   document.body.appendChild(a);
   a.click();
   a.remove();
@@ -164,7 +164,7 @@ export function downloadTemplateCSV() {
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
   a.href = url;
-  a.download = "formfeed-template.csv";
+  a.download = "openmedicine-template.csv";
   document.body.appendChild(a);
   a.click();
   a.remove();

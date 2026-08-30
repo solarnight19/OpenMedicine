@@ -1,33 +1,34 @@
 @import "tailwindcss";
 
 @theme {
-  --font-display: "Bricolage Grotesque", "IBM Plex Sans", sans-serif;
+  --font-display: "Space Grotesk", "IBM Plex Sans", sans-serif;
   --font-body: "IBM Plex Sans", sans-serif;
   --font-mono: "IBM Plex Mono", monospace;
 
-  --color-ink: #101820;
-  --color-ink-2: #18232e;
-  --color-ink-3: #22303d;
-  --color-paper: #f2f3ed;
-  --color-card: #fbfbf7;
-  --color-line: #dde1d3;
-  --color-line-2: #ccd2c2;
-  --color-body: #232d38;
-  --color-mute: #66707b;
-  --color-faint: #8b949d;
+  --color-ink: #13242e;
+  --color-ink-2: #1b3240;
+  --color-ink-3: #264354;
+  --color-paper: #f3f6f5;
+  --color-card: #fcfdfd;
+  --color-line: #dbe4e2;
+  --color-line-2: #c3d1cd;
+  --color-body: #24333c;
+  --color-mute: #5c7078;
+  --color-faint: #8aa0a7;
 
-  --color-moss: #177e5b;
-  --color-moss-deep: #0e5c42;
-  --color-moss-soft: #e0efe6;
-  --color-pen: #cf4136;
-  --color-pen-soft: #f9e6e1;
-  --color-amber: #c9821d;
-  --color-amber-soft: #f8ecd7;
-  --color-cobalt: #33598f;
-  --color-cobalt-soft: #e4ebf4;
+  --color-moss: #0e7c6b;
+  --color-moss-deep: #0a5f52;
+  --color-moss-soft: #e0f0ec;
+  --color-pen: #cd3d3d;
+  --color-pen-soft: #fae8e8;
+  --color-amber: #bd7c16;
+  --color-amber-soft: #f7edd8;
+  --color-cobalt: #38618f;
+  --color-cobalt-soft: #e6edf5;
+  --color-pulse: #e14b4b;
 
-  --shadow-lift: 0 1px 2px rgba(16, 24, 32, 0.06), 0 6px 20px -6px rgba(16, 24, 32, 0.14);
-  --shadow-pop: 0 2px 4px rgba(16, 24, 32, 0.08), 0 18px 44px -12px rgba(16, 24, 32, 0.28);
+  --shadow-lift: 0 1px 2px rgba(19, 36, 46, 0.06), 0 8px 22px -8px rgba(19, 36, 46, 0.16);
+  --shadow-pop: 0 2px 4px rgba(19, 36, 46, 0.08), 0 20px 48px -12px rgba(19, 36, 46, 0.3);
 }
 
 html,
@@ -39,27 +40,27 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
-/* layered ambient paper: faint ruling + dot grid */
+/* layered ambient chart-paper: faint cross grid + ruling */
 .paper-bg {
   background-color: var(--color-paper);
   background-image:
-    radial-gradient(rgba(16, 24, 32, 0.055) 1px, transparent 1px),
-    linear-gradient(rgba(16, 24, 32, 0.028) 1px, transparent 1px);
+    radial-gradient(rgba(19, 36, 46, 0.055) 1px, transparent 1px),
+    linear-gradient(rgba(19, 36, 46, 0.026) 1px, transparent 1px);
   background-size: 22px 22px, 100% 34px;
 }
 
 .ink-bg {
   background-color: var(--color-ink);
   background-image:
-    radial-gradient(rgba(242, 243, 237, 0.05) 1px, transparent 1px),
-    linear-gradient(160deg, rgba(23, 126, 91, 0.16), transparent 42%);
+    radial-gradient(rgba(243, 246, 245, 0.05) 1px, transparent 1px),
+    linear-gradient(158deg, rgba(14, 124, 107, 0.22), transparent 46%);
   background-size: 20px 20px, 100% 100%;
 }
 
 .hatch-band {
   background-image: repeating-linear-gradient(
     -45deg,
-    rgba(16, 24, 32, 0.1) 0 2px,
+    rgba(19, 36, 46, 0.14) 0 2px,
     transparent 2px 9px
   );
 }
@@ -69,11 +70,11 @@ body {
 
 ::selection {
   background: var(--color-moss);
-  color: #f5faf7;
+  color: #f2faf8;
 }
 
 *::-webkit-scrollbar { width: 10px; height: 10px; }
-*::-webkit-scrollbar-thumb { background: #c3cab9; border-radius: 8px; border: 2px solid var(--color-paper); }
+*::-webkit-scrollbar-thumb { background: #bccbc7; border-radius: 8px; border: 2px solid var(--color-paper); }
 *::-webkit-scrollbar-track { background: transparent; }
 
 @keyframes fadeUp {
@@ -101,6 +102,23 @@ body {
   0%, 100% { transform: scale(1); opacity: 1; }
   50% { transform: scale(1.6); opacity: 0.55; }
 }
+@keyframes ecgRun {
+  from { stroke-dashoffset: 0; }
+  to { stroke-dashoffset: -300; }
+}
+@keyframes blinkSoft {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.35; }
+}
+@keyframes shakeX {
+  0%, 100% { transform: translateX(0); }
+  20% { transform: translateX(-6px); }
+  40% { transform: translateX(5px); }
+  60% { transform: translateX(-4px); }
+  80% { transform: translateX(3px); }
+}
+
+.anim-shake { animation: shakeX 0.35s ease both; }
 
 .anim-fade-up { animation: fadeUp 0.4s cubic-bezier(0.2, 0.7, 0.3, 1) both; }
 .anim-fade-in { animation: fadeIn 0.25s ease both; }
@@ -108,6 +126,9 @@ body {
 .anim-toast { animation: toastIn 0.3s cubic-bezier(0.2, 0.7, 0.3, 1) both; }
 .anim-stamp { animation: stampIn 0.45s cubic-bezier(0.2, 0.7, 0.3, 1) 0.15s both; }
 .anim-pulse-dot { animation: pulseDot 2.2s ease-in-out infinite; }
+.anim-blink { animation: blinkSoft 1.6s ease-in-out infinite; }
+
+.ecg-run { animation: ecgRun 3.4s linear infinite; }
 
 .stagger > * { animation: fadeUp 0.45s cubic-bezier(0.2, 0.7, 0.3, 1) both; }
 .stagger > *:nth-child(1) { animation-delay: 0.02s; }

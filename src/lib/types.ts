@@ -15,6 +15,29 @@ export interface Bank {
   name: string;
   color: string;
   createdAt: number;
+  updatedAt?: number;
+  publishedEntryId?: string;
+  questions: Question[];
+}
+
+export interface User {
+  id: string;
+  name: string;
+  email: string;
+  pw: string; // demo-grade hash, browser-only
+  createdAt: number;
+}
+
+export interface LibraryEntry {
+  id: string;
+  bankId: string;
+  ownerId: string;
+  authorName: string;
+  name: string;
+  description: string;
+  color: string;
+  publishedAt: number;
+  updatedAt: number;
   questions: Question[];
 }
 
@@ -77,7 +100,7 @@ export interface ParseOutcome {
   rawCount: number;
 }
 
-export const BANK_COLORS = ["#177e5b", "#c9821d", "#33598f", "#17707e", "#b23a5a", "#5d6b21"];
+export const BANK_COLORS = ["#0e7c6b", "#bd7c16", "#38618f", "#0f7486", "#a84a6b", "#5d7a2a"];
 
 export const DIFFICULTIES: Difficulty[] = ["easy", "medium", "hard"];
 

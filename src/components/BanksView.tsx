@@ -1,10 +1,10 @@
 import { useMemo, useState } from "react";
-import type { Bank, Difficulty, Question } from "../lib/types";
+import type { Bank, Difficulty, LibraryEntry, Question } from "../lib/types";
 import { DIFFICULTIES, fmtDate, LETTERS, uid } from "../lib/types";
 import { Btn, Chip, EmptyState, Field, Modal, SectionTitle, inputCls } from "./ui";
 import {
   IconBank, IconPlus, IconSearch, IconTrash, IconPencil, IconUpload, IconTarget,
-  IconChevronL, IconAlert, IconCheck, IconInbox, IconX,
+  IconChevronL, IconAlert, IconCheck, IconInbox, IconX, IconGlobe, IconHeart,
 } from "./icons";
 
 const diffTone: Record<Difficulty, "moss" | "amber" | "pen"> = { easy: "moss", medium: "amber", hard: "pen" };
@@ -221,17 +221,29 @@ export function Confirm({
 
 function BankDetail({
   bank,
+  isFav,
+  isStale,
   onBack,
   onSaveQuestion,
   onDeleteQuestion,
   onDeleteBank,
+  onToggleFavorite,
+  onPublishRequest,
+  onUnpublishRequest,
+  onUpdatePublished,
   onNav,
 }: {
   bank: Bank;
+  isFav: boolean;
+  isStale: boolean;
   onBack: () => void;
   onSaveQuestion: (draft: QuestionDraft, id?: string) => void;
   onDeleteQuestion: (qid: string) => void;
   onDeleteBank: () => void;
+  onToggleFavorite: (id: string) => void;
+  onPublishRequest: (bank: Bank) => void;
+  onUnpublishRequest: (bank: Bank) => void;
+  onUpdatePublished: (id: string) => void;
   onNav: (key: string) => void;
 }) {
   const [query, setQuery] = useState("");
@@ -273,6 +285,12 @@ function BankDetail({
               <div className="flex flex-wrap gap-2 mt-1.5">
                 <Chip>{bank.questions.length} questions</Chip>
                 <Chip tone="neutral">created {fmtDate(bank.createdAt)}</Chip>
+                {bank.publishedEntryId && (
+                  <Chip tone="moss">
+                    <IconGlobe /> published
+                  </Chip>
+                )}
+                {bank.publishedEntryId && isStale && <Chip tone="amber">copy out of date</Chip>}
               </div>
             </div>
           </div>
@@ -286,6 +304,33 @@ function BankDetail({
             <Btn size="sm" variant="ghost" onClick={() => onNav(`builder:${bank.id}`)}>
               <IconTarget className="text-cobalt" /> Build test
             </Btn>
+            {bank.publishedEntryId ? (
+              <>
+                {isStale && (
+                  <Btn size="sm" variant="soft" onClick={() => onUpdatePublished(bank.id)}>
+                    <IconGlobe /> Sync published copy
+                  </Btn>
+                )}
+                <Btn size="sm" variant="ghost" onClick={() => onUnpublishRequest(bank)}>
+                  <IconX className="text-pen" /> Withdraw
+                </Btn>
+              </>
+            ) : (
+              <Btn size="sm" variant="soft" onClick={() => onPublishRequest(bank)}>
+                <IconGlobe /> Publish
+              </Btn>
+            )}
+            <button
+              onClick={() => onToggleFavorite(bank.id)}
+              className={`px-3 py-2 rounded-md border text-sm font-semibold inline-flex items-center gap-2 transition-all cursor-pointer ${
+                isFav
+                  ? "bg-amber-soft border-amber/50 text-[#8a5a10]"
+                  : "bg-transparent text-body border-line-2 hover:border-amber/50 hover:text-[#8a5a10] hover:bg-amber-soft/50"
+              }`}
+              title={isFav ? "Remove from favourites" : "Save to favourites"}
+            >
+              <IconHeart filled={isFav} /> {isFav ? "Favourited" : "Favourite"}
+            </button>
           </div>
         </div>
         <div className="dash-b mt-5" />
@@ -316,7 +361,7 @@ function BankDetail({
           <EmptyState
             icon={<IconInbox />}
             title="This bank is empty"
-            body="Add questions one by one, or feed it a CSV and let FormFeed do the filing."
+            body="Add questions one by one, or feed it a CSV and let OpenMedicine do the filing."
             action={
               <>
                 <Btn onClick={() => setEditor({ open: true })}>
@@ -445,45 +490,151 @@ function BankDetail({
   );
 }
 
+/* ================= Publish modal ================= */
+
+function PublishModal({
+  bank,
+  desc,
+  setDesc,
+  onClose,
+  onConfirm,
+}: {
+  bank: Bank | null;
+  desc: string;
+  setDesc: (v: string) => void;
+  onClose: () => void;
+  onConfirm: () => void;
+}) {
+  if (!bank) return null;
+  return (
+    <Modal kicker="Open Library" title={`Publish “${bank.name}”`} onClose={onClose}>
+      <div className="space-y-4">
+        <div className="bg-moss-soft/60 border border-moss/25 rounded-md px-4 py-3 text-[13px] text-mute leading-relaxed">
+          A <strong className="text-moss-deep">snapshot</strong> of these {bank.questions.length} questions becomes
+          visible to every OpenMedicine account in this browser. They can favourite it or clone it — your bank stays
+          yours and editable.
+        </div>
+        <Field label="Listing description" hint="one or two lines, shown on the library card">
+          <textarea
+            className={`${inputCls} resize-y min-h-[70px]`}
+            value={desc}
+            onChange={(e) => setDesc(e.target.value)}
+            placeholder={`e.g. High-yield ${bank.name.toLowerCase()} questions with explanations.`}
+            autoFocus
+          />
+        </Field>
+        <div className="flex justify-end gap-2 pt-1">
+          <Btn variant="ghost" onClick={onClose}>Not yet</Btn>
+          <Btn onClick={onConfirm}>
+            <IconGlobe /> Publish to library
+          </Btn>
+        </div>
+      </div>
+    </Modal>
+  );
+}
+
 /* ================= Banks grid ================= */
 
 export default function BanksView({
   banks,
   openId,
   autoCreate,
+  favorites,
+  library,
   onOpen,
   onCreate,
   onDeleteBank,
   onSaveQuestion,
   onDeleteQuestion,
+  onToggleFavorite,
+  onPublish,
+  onUnpublish,
+  onUpdatePublished,
   onNav,
 }: {
   banks: Bank[];
   openId: string | null;
   autoCreate: boolean;
+  favorites: string[];
+  library: LibraryEntry[];
   onOpen: (id: string | null) => void;
   onCreate: (name: string) => void;
   onDeleteBank: (id: string) => void;
   onSaveQuestion: (bankId: string, draft: QuestionDraft, id?: string) => void;
   onDeleteQuestion: (bankId: string, qid: string) => void;
+  onToggleFavorite: (id: string) => void;
+  onPublish: (bankId: string, description: string) => void;
+  onUnpublish: (bankId: string) => void;
+  onUpdatePublished: (bankId: string) => void;
   onNav: (key: string) => void;
 }) {
   const [createOpen, setCreateOpen] = useState(autoCreate);
   const [name, setName] = useState("");
   const [nameErr, setNameErr] = useState<string | null>(null);
+  const [publishFor, setPublishFor] = useState<Bank | null>(null);
+  const [publishDesc, setPublishDesc] = useState("");
+  const [unpublishFor, setUnpublishFor] = useState<Bank | null>(null);
+
+  const entryOf = (b: Bank) => (b.publishedEntryId ? library.find((e) => e.id === b.publishedEntryId) : undefined);
+  const isStale = (b: Bank) => {
+    const e = entryOf(b);
+    return !!e && (b.updatedAt ?? 0) > e.updatedAt;
+  };
 
   const open = openId ? banks.find((b) => b.id === openId) : undefined;
 
   if (open) {
     return (
-      <BankDetail
-        bank={open}
-        onBack={() => onOpen(null)}
-        onSaveQuestion={(draft, id) => onSaveQuestion(open.id, draft, id)}
-        onDeleteQuestion={(qid) => onDeleteQuestion(open.id, qid)}
-        onDeleteBank={() => onDeleteBank(open.id)}
-        onNav={onNav}
-      />
+      <>
+        <BankDetail
+          bank={open}
+          isFav={favorites.includes(open.id)}
+          isStale={isStale(open)}
+          onBack={() => onOpen(null)}
+          onSaveQuestion={(draft, id) => onSaveQuestion(open.id, draft, id)}
+          onDeleteQuestion={(qid) => onDeleteQuestion(open.id, qid)}
+          onDeleteBank={() => onDeleteBank(open.id)}
+          onToggleFavorite={onToggleFavorite}
+          onPublishRequest={(b) => {
+            setPublishDesc("");
+            setPublishFor(b);
+          }}
+          onUnpublishRequest={setUnpublishFor}
+          onUpdatePublished={onUpdatePublished}
+          onNav={onNav}
+        />
+        <PublishModal
+          bank={publishFor}
+          desc={publishDesc}
+          setDesc={setPublishDesc}
+          onClose={() => setPublishFor(null)}
+          onConfirm={() => {
+            if (publishFor) onPublish(publishFor.id, publishDesc);
+            setPublishFor(null);
+          }}
+        />
+        {unpublishFor && (
+          <Modal title={`Withdraw “${unpublishFor.name}”?`} onClose={() => setUnpublishFor(null)}>
+            <p className="text-sm text-mute leading-relaxed">
+              The published copy will be removed from the Open Library immediately. Accounts that cloned it keep their
+              copies, and your bank itself is untouched.
+            </p>
+            <div className="flex justify-end gap-2 mt-6">
+              <Btn variant="ghost" onClick={() => setUnpublishFor(null)}>Keep it published</Btn>
+              <Btn
+                variant="danger"
+                onClick={() => {
+                  onUnpublish(unpublishFor.id);
+                  setUnpublishFor(null);
+                }}
+              >
+                <IconX /> Withdraw from library
+              </Btn>
+            </div>
+          </Modal>
+        )}
+      </>
     );
   }
 
@@ -500,6 +651,7 @@ export default function BanksView({
   const totalQs = banks.reduce((n, b) => n + b.questions.length, 0);
 
   return (
+    <>
     <div className="max-w-[1060px] mx-auto px-5 sm:px-8 py-7">
       <SectionTitle
         kicker="Section B"
@@ -532,39 +684,95 @@ export default function BanksView({
         />
       ) : (
         <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 stagger">
-          {banks.map((b) => (
-            <div
-              key={b.id}
-              className="bg-card border border-line rounded-md overflow-hidden group hover:shadow-lift hover:-translate-y-1 transition-all duration-200 cursor-pointer"
-              onClick={() => onOpen(b.id)}
-            >
-              <div className="hatch-band h-2.5" style={{ background: b.color }} />
-              <div className="p-5">
-                <div className="flex items-start justify-between gap-2">
-                  <h3 className="font-display font-bold text-lg text-ink leading-snug group-hover:text-moss transition-colors">
-                    {b.name}
-                  </h3>
-                  <span className="font-mono text-[11px] text-faint bg-paper border border-line rounded px-1.5 py-0.5 tabular-nums">
-                    {b.questions.length} q
-                  </span>
-                </div>
-                <p className="font-mono text-[10.5px] uppercase tracking-widest text-faint mt-2">since {fmtDate(b.createdAt)}</p>
-                {b.questions[0] && (
-                  <p className="text-[13px] text-mute leading-snug mt-3 line-clamp-2 border-l-2 pl-3" style={{ borderColor: b.color }}>
-                    {b.questions[0].prompt}
-                  </p>
-                )}
-                <div className="flex gap-2 mt-4">
-                  <Btn size="sm" variant="soft" onClick={(e) => { e.stopPropagation(); onOpen(b.id); }}>
-                    Open bank
-                  </Btn>
-                  <Btn size="sm" variant="ghost" onClick={(e) => { e.stopPropagation(); onNav(`builder:${b.id}`); }}>
-                    <IconTarget className="text-cobalt" /> Test
-                  </Btn>
+          {banks.map((b) => {
+            const fav = favorites.includes(b.id);
+            const published = !!b.publishedEntryId;
+            const stale = isStale(b);
+            return (
+              <div
+                key={b.id}
+                className="bg-card border border-line rounded-md overflow-hidden group hover:shadow-lift hover:-translate-y-1 transition-all duration-200 cursor-pointer"
+                onClick={() => onOpen(b.id)}
+              >
+                <div className="hatch-band h-2.5" style={{ background: b.color }} />
+                <div className="p-5">
+                  <div className="flex items-start justify-between gap-2">
+                    <h3 className="font-display font-bold text-lg text-ink leading-snug group-hover:text-moss transition-colors">
+                      {b.name}
+                    </h3>
+                    <div className="flex items-center gap-1 shrink-0">
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onToggleFavorite(b.id);
+                        }}
+                        className={`p-1.5 rounded-md border transition-all cursor-pointer ${
+                          fav
+                            ? "text-[#8a5a10] border-amber/50 bg-amber-soft"
+                            : "text-faint border-transparent hover:text-[#8a5a10] hover:bg-amber-soft/60"
+                        }`}
+                        aria-label={fav ? "Remove from favourites" : "Add to favourites"}
+                        title={fav ? "Remove from favourites" : "Save to favourites"}
+                      >
+                        <IconHeart filled={fav} />
+                      </button>
+                      <span className="font-mono text-[11px] text-faint bg-paper border border-line rounded px-1.5 py-0.5 tabular-nums">
+                        {b.questions.length} q
+                      </span>
+                    </div>
+                  </div>
+                  <div className="flex flex-wrap items-center gap-1.5 mt-2">
+                    <span className="font-mono text-[10.5px] uppercase tracking-widest text-faint">since {fmtDate(b.createdAt)}</span>
+                    {published && (
+                      <Chip tone="moss" className="text-[9.5px]!">
+                        <IconGlobe /> live
+                      </Chip>
+                    )}
+                    {published && stale && <Chip tone="amber" className="text-[9.5px]!">stale copy</Chip>}
+                  </div>
+                  {b.questions[0] && (
+                    <p className="text-[13px] text-mute leading-snug mt-3 line-clamp-2 border-l-2 pl-3" style={{ borderColor: b.color }}>
+                      {b.questions[0].prompt}
+                    </p>
+                  )}
+                  <div className="flex gap-2 mt-4">
+                    <Btn size="sm" variant="soft" onClick={(e) => { e.stopPropagation(); onOpen(b.id); }}>
+                      Open bank
+                    </Btn>
+                    <Btn size="sm" variant="ghost" onClick={(e) => { e.stopPropagation(); onNav(`builder:${b.id}`); }}>
+                      <IconTarget className="text-cobalt" /> Test
+                    </Btn>
+                    {published ? (
+                      <Btn
+                        size="sm"
+                        variant="ghost"
+                        title="Withdraw from the Open Library"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setUnpublishFor(b);
+                        }}
+                      >
+                        <IconX className="text-pen" />
+                      </Btn>
+                    ) : (
+                      <Btn
+                        size="sm"
+                        variant="ghost"
+                        title="Publish to the Open Library"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setPublishDesc("");
+                          setPublishFor(b);
+                        }}
+                      >
+                        <IconGlobe className="text-moss" />
+                      </Btn>
+                    )}
+                  </div>
                 </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
 
           <button
             onClick={() => setCreateOpen(true)}
@@ -606,5 +814,37 @@ export default function BanksView({
         </Modal>
       )}
     </div>
+
+    <PublishModal
+      bank={publishFor}
+      desc={publishDesc}
+      setDesc={setPublishDesc}
+      onClose={() => setPublishFor(null)}
+      onConfirm={() => {
+        if (publishFor) onPublish(publishFor.id, publishDesc);
+        setPublishFor(null);
+      }}
+    />
+    {unpublishFor && (
+      <Modal title={`Withdraw “${unpublishFor.name}”?`} onClose={() => setUnpublishFor(null)}>
+        <p className="text-sm text-mute leading-relaxed">
+          The published copy will be removed from the Open Library immediately. Accounts that cloned it keep their
+          copies, and your bank itself is untouched.
+        </p>
+        <div className="flex justify-end gap-2 mt-6">
+          <Btn variant="ghost" onClick={() => setUnpublishFor(null)}>Keep it published</Btn>
+          <Btn
+            variant="danger"
+            onClick={() => {
+              onUnpublish(unpublishFor.id);
+              setUnpublishFor(null);
+            }}
+          >
+            <IconX /> Withdraw from library
+          </Btn>
+        </div>
+      </Modal>
+    )}
+    </>
   );
 }

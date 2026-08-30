@@ -23,15 +23,30 @@ type P = SVGProps<SVGSVGElement>;
 
 export const IconLogo = (p: P) => (
   <Base {...p} strokeWidth="1.6">
-    <rect x="3.2" y="2.6" width="17.6" height="18.8" rx="1.6" />
-    <circle cx="8" cy="7.4" r="1.7" fill="currentColor" stroke="none" />
-    <path d="M12 7.4h6" />
-    <circle cx="8" cy="12" r="1.7" />
-    <path d="M12 12h6" />
-    <circle cx="8" cy="16.6" r="1.7" fill="currentColor" stroke="none" />
-    <path d="M12 16.6h6" />
+    <path d="M9.4 3.2h5.2a1.4 1.4 0 0 1 1.4 1.4v3.4h3.4a1.4 1.4 0 0 1 1.4 1.4v5.2a1.4 1.4 0 0 1-1.4 1.4H16v3.4a1.4 1.4 0 0 1-1.4 1.4H9.4A1.4 1.4 0 0 1 8 19.4V16H4.6A1.4 1.4 0 0 1 3.2 14.6V9.4A1.4 1.4 0 0 1 4.6 8H8V4.6a1.4 1.4 0 0 1 1.4-1.4Z" />
+    <path d="M5.8 12h2.4l1-2 1.6 4 1.2-2h6.2" strokeWidth="1.5" />
   </Base>
 );
+
+/** Animated ECG trace — the signature living element. */
+export function EcgTrace({ className = "" }: { className?: string }) {
+  const d = "M0 24 H34 L42 24 48 10 56 36 62 24 H96 L104 24 110 6 120 40 127 24 H160 L168 24 174 13 182 33 188 24 H222 L230 24 236 8 244 38 251 24 H300";
+  return (
+    <svg viewBox="0 0 300 48" className={className} preserveAspectRatio="none" aria-hidden="true">
+      <path d={d} fill="none" stroke="currentColor" strokeOpacity="0.18" strokeWidth="1.5" />
+      <path
+        d={d}
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.8"
+        strokeLinecap="round"
+        className="ecg-run"
+        pathLength={300}
+        strokeDasharray="70 230"
+      />
+    </svg>
+  );
+}
 
 export const IconGrid = (p: P) => (
   <Base {...p}>
@@ -218,5 +233,53 @@ export const IconCopy = (p: P) => (
   <Base {...p}>
     <rect x="8.5" y="8.5" width="11" height="11" rx="1.5" />
     <path d="M5.5 14.5h-.4a1.6 1.6 0 0 1-1.6-1.6V5.6a1.6 1.6 0 0 1 1.6-1.6h7.3a1.6 1.6 0 0 1 1.6 1.6v.4" />
+  </Base>
+);
+
+export const IconStar = ({ filled, ...p }: P & { filled?: boolean }) => (
+  <Base {...p} fill={filled ? "currentColor" : "none"}>
+    <path d="m12 4 2.4 4.9 5.4.8-3.9 3.8.9 5.4-4.8-2.5-4.8 2.5.9-5.4L4.2 9.7l5.4-.8z" />
+  </Base>
+);
+
+export const IconHeart = ({ filled, ...p }: P & { filled?: boolean }) => (
+  <Base {...p} fill={filled ? "currentColor" : "none"}>
+    <path d="M12 20s-7.2-4.6-7.2-9.6A4.1 4.1 0 0 1 8.9 6.2c1.3 0 2.5.7 3.1 1.7.6-1 1.8-1.7 3.1-1.7a4.1 4.1 0 0 1 4.1 4.2c0 5-7.2 9.6-7.2 9.6Z" />
+  </Base>
+);
+
+export const IconGlobe = (p: P) => (
+  <Base {...p}>
+    <circle cx="12" cy="12" r="8.5" />
+    <path d="M3.5 12h17" />
+    <path d="M12 3.5c2.6 2.4 3.9 5.2 3.9 8.5s-1.3 6.1-3.9 8.5c-2.6-2.4-3.9-5.2-3.9-8.5s1.3-6.1 3.9-8.5Z" />
+  </Base>
+);
+
+export const IconUser = (p: P) => (
+  <Base {...p}>
+    <circle cx="12" cy="8.2" r="3.6" />
+    <path d="M5 20c.8-3.4 3.6-5.2 7-5.2s6.2 1.8 7 5.2" />
+  </Base>
+);
+
+export const IconLogout = (p: P) => (
+  <Base {...p}>
+    <path d="M13.5 4.5H6.6a1.6 1.6 0 0 0-1.6 1.6v11.8a1.6 1.6 0 0 0 1.6 1.6h6.9" />
+    <path d="M16 8.5 19.5 12 16 15.5" />
+    <path d="M19.5 12H9.8" />
+  </Base>
+);
+
+export const IconBookOpen = (p: P) => (
+  <Base {...p}>
+    <path d="M12 6.3C10.4 5 8.2 4.4 5.5 4.4c-1 0-1.9.1-2.5.2v13.2c.6-.1 1.5-.2 2.5-.2 2.7 0 4.9.6 6.5 1.9 1.6-1.3 3.8-1.9 6.5-1.9 1 0 1.9.1 2.5.2V4.6c-.6-.1-1.5-.2-2.5-.2-2.7 0-4.9.6-6.5 1.9Z" />
+    <path d="M12 6.3v13.2" />
+  </Base>
+);
+
+export const IconPulse = (p: P) => (
+  <Base {...p}>
+    <path d="M3.5 12h3.7l1.7-4.5 2.9 9 2-4.5h6.7" />
   </Base>
 );

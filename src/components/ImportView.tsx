@@ -79,7 +79,7 @@ export function FormatStrip({ compact = false }: { compact?: boolean }) {
             </div>
             <pre className="font-mono text-[11.5px] leading-[1.7] text-[#cfe6d9] overflow-x-auto">
 {`prompt,answer,wrong_1,wrong_2
-"What is 2 + 2?",4,3,5`}
+"Which chamber forms the apex of the heart?",Left ventricle,Right ventricle,Left atrium`}
             </pre>
           </div>
         </div>
@@ -515,7 +515,7 @@ export function FormatGuide({ onNav }: { onNav: (key: string) => void }) {
     <div className="max-w-[1060px] mx-auto px-5 sm:px-8 py-7">
       <SectionTitle
         kicker="Section D"
-        title="The CSV FormFeed recognises"
+        title="The CSV OpenMedicine recognises"
         right={
           <div className="flex gap-2">
             <Btn size="sm" variant="ghost" onClick={copyHeader}>
@@ -606,7 +606,7 @@ export function FormatGuide({ onNav }: { onNav: (key: string) => void }) {
               </Btn>
               <Btn
                 size="sm"
-                className="!bg-paper/10 !text-paper !shadow-none hover:!bg-paper/20 border border-paper/15"
+                className="bg-paper/10! text-paper! shadow-none! hover:bg-paper/20! border border-paper/15"
                 onClick={() => onNav("import")}
               >
                 <IconArrowR /> Go to the importer
