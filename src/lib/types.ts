@@ -111,6 +111,8 @@ export interface ParseOutcome {
   unknownColumns: string[];
   rows: ParsedRow[];
   rawCount: number;
+  /** Separator detected in the source: ",", "\t" or ";". */
+  delimiter: string;
 }
 
 export const BANK_COLORS = ["#0e7c6b", "#bd7c16", "#38618f", "#0f7486", "#a84a6b", "#5d7a2a"];

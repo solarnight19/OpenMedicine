@@ -258,6 +258,7 @@ export default function ImportView({
           {fileName ? fileName : dragOver ? "Drop it right here" : "Drop a .csv here, or click to browse"}
         </p>
         <p className="text-[13px] text-mute mt-1">
+          Comma, tab or semicolon separated — pasting straight from Excel, Google Sheets or Numbers works.
           Needs a header row with at least <span className="font-mono text-[12px] text-moss-deep">prompt</span>,{" "}
           <span className="font-mono text-[12px] text-moss-deep">answer</span> and two{" "}
           <span className="font-mono text-[12px] text-moss-deep">wrong_…</span> columns.
@@ -282,14 +283,14 @@ export default function ImportView({
             }}
             className="text-[12.5px] font-semibold text-mute hover:text-ink underline underline-offset-2 cursor-pointer"
           >
-            {showPaste ? "Hide paste pad" : "Paste CSV text instead"}
+            {showPaste ? "Hide paste pad" : "Paste CSV / spreadsheet rows instead"}
           </button>
         </div>
       </div>
 
       {showPaste && (
         <div className="mt-4 anim-fade-up">
-          <Field label="Paste CSV text" hint="header row included">
+          <Field label="Paste your rows" hint="header row included · tabs from a spreadsheet are fine">
             <textarea
               className={`${inputCls} font-mono text-[12px] resize-y min-h-[120px]`}
               placeholder={"prompt,answer,wrong_1,wrong_2,explanation,tags,difficulty\n\"…\",\"…\",\"…\",\"…\",\"…\",tag1;tag2,medium"}
@@ -328,6 +329,9 @@ export default function ImportView({
             {outcome.unknownColumns.length > 0 && (
               <Chip tone="amber">ignored: {outcome.unknownColumns.join(", ")}</Chip>
             )}
+            <Chip tone="cobalt" className="ml-auto">
+              {outcome.delimiter === "\t" ? "tab-separated detected" : outcome.delimiter === ";" ? "semicolon-separated detected" : "comma-separated detected"}
+            </Chip>
           </div>
 
           {!outcome.headers.includes("prompt") && !outcome.headers.some((h) => /question|prompt/i.test(h)) && (

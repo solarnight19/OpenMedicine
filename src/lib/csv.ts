@@ -8,8 +8,11 @@ import type { Difficulty, ParseOutcome, ParsedRow } from "./types";
  *   answer | correct | correct_answer          required
  *   wrong_1 / incorrect_1 ... wrong_5          at least two required
  *   explanation | rationale                    optional
- *   tags                                       optional, semicolon-separated
+ *   tags                                       optional, split on ; | or ,
  *   difficulty                                 optional: easy | medium | hard
+ *
+ * Separator is auto-detected from the header line: tab (paste straight from
+ * Excel / Google Sheets / Numbers), comma (classic CSV) or semicolon.
  */
 
 const ALIASES: Record<string, string> = {
@@ -35,8 +38,20 @@ function normalizeHeader(h: string): string {
   return key;
 }
 
-/** Quote-aware CSV tokenizer: handles quoted commas, newlines and "" escapes. */
-export function tokenizeCSV(text: string): string[][] {
+/**
+ * Detect the column separator from the header line: tab (pasted straight from
+ * Excel / Google Sheets / Numbers), comma (classic CSV) or semicolon (EU exports).
+ */
+export function detectDelimiter(text: string): string {
+  const firstLine = text.replace(/^\uFEFF/, "").split(/\r?\n/).find((l) => l.trim().length > 0) ?? "";
+  if (firstLine.includes("\t")) return "\t";
+  if (firstLine.includes(",")) return ",";
+  if (firstLine.includes(";")) return ";";
+  return ",";
+}
+
+/** Quote-aware tokenizer: handles quoted separators, newlines and "" escapes. */
+export function tokenizeCSV(text: string, delim: string = ","): string[][] {
   const rows: string[][] = [];
   let row: string[] = [];
   let cell = "";
@@ -58,7 +73,7 @@ export function tokenizeCSV(text: string): string[][] {
       }
     } else if (ch === '"') {
       inQuotes = true;
-    } else if (ch === ",") {
+    } else if (ch === delim) {
       row.push(cell);
       cell = "";
     } else if (ch === "\n") {
@@ -78,9 +93,11 @@ export function tokenizeCSV(text: string): string[][] {
 const DIFF_SET = new Set(["easy", "medium", "hard"]);
 
 export function parseCSV(text: string): ParseOutcome {
-  const grid = tokenizeCSV(text);
+  const clean = text.replace(/^\uFEFF/, "");
+  const delimiter = detectDelimiter(clean);
+  const grid = tokenizeCSV(clean, delimiter);
   if (grid.length === 0) {
-    return { headers: [], unknownColumns: [], rows: [], rawCount: 0 };
+    return { headers: [], unknownColumns: [], rows: [], rawCount: 0, delimiter };
   }
 
   const headers = grid[0].map(normalizeHeader);
@@ -114,7 +131,7 @@ export function parseCSV(text: string): ParseOutcome {
       answer,
       wrongs,
       explanation: explCol >= 0 ? at(explCol) || undefined : undefined,
-      tags: tagsCol >= 0 ? at(tagsCol).split(/[;|]/).map((t) => t.trim()).filter(Boolean) : [],
+      tags: tagsCol >= 0 ? at(tagsCol).split(/[;|,]/).map((t) => t.trim()).filter(Boolean) : [],
       difficulty: "medium",
     };
 
@@ -134,7 +151,7 @@ export function parseCSV(text: string): ParseOutcome {
     rows.push(parsed);
   }
 
-  return { headers: grid[0].map((h) => h.trim()), unknownColumns, rows, rawCount: grid.length - 1 };
+  return { headers: grid[0].map((h) => h.trim()), unknownColumns, rows, rawCount: grid.length - 1, delimiter };
 }
 
 export const SAMPLE_CSV = `prompt,answer,wrong_1,wrong_2,wrong_3,explanation,tags,difficulty
