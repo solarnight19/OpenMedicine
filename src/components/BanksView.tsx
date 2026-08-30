@@ -1,13 +1,81 @@
 import { useMemo, useState } from "react";
-import type { Bank, Difficulty, LibraryEntry, Question } from "../lib/types";
+import type { Bank, BankStats, Difficulty, LibraryEntry, Question } from "../lib/types";
 import { DIFFICULTIES, fmtDate, LETTERS, uid } from "../lib/types";
 import { Btn, Chip, EmptyState, Field, Modal, SectionTitle, inputCls } from "./ui";
 import {
   IconBank, IconPlus, IconSearch, IconTrash, IconPencil, IconUpload, IconTarget,
-  IconChevronL, IconAlert, IconCheck, IconInbox, IconX, IconGlobe, IconHeart,
+  IconChevronL, IconAlert, IconCheck, IconInbox, IconX, IconGlobe, IconHeart, IconPulse,
 } from "./icons";
 
 const diffTone: Record<Difficulty, "moss" | "amber" | "pen"> = { easy: "moss", medium: "amber", hard: "pen" };
+
+/* ================= Progress panel ================= */
+
+export function accuracyOf(stats?: BankStats): number | null {
+  if (!stats || stats.attempted === 0) return null;
+  return Math.round((stats.correct / stats.attempted) * 100);
+}
+
+export function ProgressStrip({ stats, onPractice }: { stats?: BankStats; onPractice: () => void }) {
+  const acc = accuracyOf(stats);
+  return (
+    <div className="mt-5 bg-card border border-line rounded-md px-5 py-4 anim-fade-up">
+      <div className="flex flex-wrap items-center gap-x-8 gap-y-4">
+        <div>
+          <div className="font-mono text-[10px] uppercase tracking-[0.2em] text-mute mb-2">Your progress on this bank</div>
+          {stats && stats.attempted > 0 ? (
+            <div className="flex items-end gap-6">
+              <div>
+                <div className="font-display font-extrabold text-[26px] leading-none text-ink tabular-nums">{stats.attempted}</div>
+                <div className="font-mono text-[9.5px] uppercase tracking-widest text-faint mt-1">attempted</div>
+              </div>
+              <div>
+                <div className="font-display font-extrabold text-[26px] leading-none text-moss-deep tabular-nums">{stats.correct}</div>
+                <div className="font-mono text-[9.5px] uppercase tracking-widest text-faint mt-1">correct</div>
+              </div>
+              <div>
+                <div className="font-display font-extrabold text-[26px] leading-none text-pen tabular-nums">{stats.incorrect}</div>
+                <div className="font-mono text-[9.5px] uppercase tracking-widest text-faint mt-1">incorrect</div>
+              </div>
+            </div>
+          ) : (
+            <p className="text-[13px] text-mute">
+              No attempts logged yet — every practice answer and exam result you give against this bank is tallied here.
+            </p>
+          )}
+        </div>
+
+        <div className="flex-1 min-w-[220px]">
+          {acc !== null && stats ? (
+            <>
+              <div className="flex items-baseline justify-between mb-1.5">
+                <span className="font-mono text-[10px] uppercase tracking-widest text-mute">accuracy</span>
+                <span className={`font-display font-extrabold text-lg tabular-nums ${acc >= 70 ? "text-moss-deep" : acc >= 40 ? "text-amber" : "text-pen"}`}>
+                  {acc}%
+                </span>
+              </div>
+              <div className="h-2.5 bg-line rounded-full overflow-hidden flex">
+                <div className="h-full bg-moss bar-arc rounded-l-full" style={{ width: `${acc}%` }} />
+                <div className="h-full bg-pen/70 bar-arc" style={{ width: `${100 - acc}%` }} />
+              </div>
+              <div className="font-mono text-[9.5px] uppercase tracking-widest text-faint mt-1.5">
+                last practised {fmtDate(stats.lastAt)}
+              </div>
+            </>
+          ) : (
+            <div className="h-2.5 bg-line rounded-full overflow-hidden">
+              <div className="h-full w-0 bg-moss rounded-full" />
+            </div>
+          )}
+        </div>
+
+        <Btn size="sm" onClick={onPractice}>
+          <IconPulse /> Practice now
+        </Btn>
+      </div>
+    </div>
+  );
+}
 
 /* ================= Question editor ================= */
 
@@ -223,6 +291,7 @@ function BankDetail({
   bank,
   isFav,
   isStale,
+  stats,
   onBack,
   onSaveQuestion,
   onDeleteQuestion,
@@ -236,6 +305,7 @@ function BankDetail({
   bank: Bank;
   isFav: boolean;
   isStale: boolean;
+  stats?: BankStats;
   onBack: () => void;
   onSaveQuestion: (draft: QuestionDraft, id?: string) => void;
   onDeleteQuestion: (qid: string) => void;
@@ -298,6 +368,9 @@ function BankDetail({
             <Btn size="sm" onClick={() => setEditor({ open: true })}>
               <IconPlus /> New question
             </Btn>
+            <Btn size="sm" variant="soft" onClick={() => onNav(`builder:${bank.id}:practice`)}>
+              <IconPulse /> Practice
+            </Btn>
             <Btn size="sm" variant="ghost" onClick={() => onNav(`import:${bank.id}`)}>
               <IconUpload className="text-moss" /> Import CSV
             </Btn>
@@ -335,6 +408,8 @@ function BankDetail({
         </div>
         <div className="dash-b mt-5" />
       </header>
+
+      <ProgressStrip stats={stats} onPractice={() => onNav(`builder:${bank.id}:practice`)} />
 
       {/* search + table */}
       <div className="mt-5 anim-fade-up">
@@ -542,6 +617,7 @@ export default function BanksView({
   autoCreate,
   favorites,
   library,
+  stats,
   onOpen,
   onCreate,
   onDeleteBank,
@@ -558,6 +634,7 @@ export default function BanksView({
   autoCreate: boolean;
   favorites: string[];
   library: LibraryEntry[];
+  stats: Record<string, BankStats>;
   onOpen: (id: string | null) => void;
   onCreate: (name: string) => void;
   onDeleteBank: (id: string) => void;
@@ -589,6 +666,7 @@ export default function BanksView({
       <>
         <BankDetail
           bank={open}
+          stats={stats[open.id]}
           isFav={favorites.includes(open.id)}
           isStale={isStale(open)}
           onBack={() => onOpen(null)}
@@ -735,9 +813,34 @@ export default function BanksView({
                       {b.questions[0].prompt}
                     </p>
                   )}
-                  <div className="flex gap-2 mt-4">
+                  {/* lifetime progress mini-bar */}
+                  {(() => {
+                    const s = stats[b.id];
+                    const acc = accuracyOf(s);
+                    return (
+                      <div className="mt-4">
+                        <div className="h-1.5 bg-line rounded-full overflow-hidden flex">
+                          {acc !== null && (
+                            <>
+                              <div className="h-full bg-moss bar-arc" style={{ width: `${acc}%` }} />
+                              <div className="h-full bg-pen/60 bar-arc" style={{ width: `${100 - acc}%` }} />
+                            </>
+                          )}
+                        </div>
+                        <div className="font-mono text-[9.5px] uppercase tracking-widest text-faint mt-1.5">
+                          {acc !== null && s
+                            ? `${acc}% accuracy · ${s.correct}✓ ${s.incorrect}✗ of ${s.attempted}`
+                            : "not practised yet"}
+                        </div>
+                      </div>
+                    );
+                  })()}
+                  <div className="flex gap-2 mt-3.5">
                     <Btn size="sm" variant="soft" onClick={(e) => { e.stopPropagation(); onOpen(b.id); }}>
                       Open bank
+                    </Btn>
+                    <Btn size="sm" variant="ghost" onClick={(e) => { e.stopPropagation(); onNav(`builder:${b.id}:practice`); }}>
+                      <IconPulse className="text-moss" /> Practice
                     </Btn>
                     <Btn size="sm" variant="ghost" onClick={(e) => { e.stopPropagation(); onNav(`builder:${b.id}`); }}>
                       <IconTarget className="text-cobalt" /> Test

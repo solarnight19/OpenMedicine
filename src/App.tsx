@@ -86,6 +86,7 @@ export default function App() {
       banks: seedSamples ? sampleBanks() : [],
       results: [],
       favorites: [],
+      bankStats: {},
     };
     setUsers((all) => {
       const next = [...all, u];
@@ -104,7 +105,7 @@ export default function App() {
       data = loadAccount(u.id);
     } else {
       u = { id: uid(), name: "Demo Resident", email, pw: hashPw("demo-demo"), createdAt: Date.now() };
-      data = { banks: sampleBanks(), results: [], favorites: [library[0]?.id].filter(Boolean) as string[] };
+      data = { banks: sampleBanks(), results: [], favorites: [library[0]?.id].filter(Boolean) as string[], bankStats: {} };
       setUsers((all) => {
         const next = [...all, u!];
         saveUsers(next);
@@ -314,11 +315,27 @@ export default function App() {
   };
 
   const finishTest = (result: TestResult) => {
-    patch((a) => ({ ...a, results: [result, ...a.results] }));
+    patch((a) => {
+      /* fold this attempt into the per-bank lifetime tallies */
+      const stats = { ...a.bankStats };
+      for (const it of result.items) {
+        if (!it.bankId || it.chosenIndex === null) continue;
+        const ok = it.chosenIndex === it.correctIndex;
+        const cur = stats[it.bankId] ?? { attempted: 0, correct: 0, incorrect: 0, lastAt: 0 };
+        stats[it.bankId] = {
+          attempted: cur.attempted + 1,
+          correct: cur.correct + (ok ? 1 : 0),
+          incorrect: cur.incorrect + (ok ? 0 : 1),
+          lastAt: Date.now(),
+        };
+      }
+      return { ...a, results: [result, ...a.results], bankStats: stats };
+    });
     setSession(null);
     setViewKey(`result:${result.id}`);
     const pct = result.total ? Math.round((result.correct / result.total) * 100) : 0;
-    toast(pct >= 70 ? "success" : "info", `Test scored: ${result.correct}/${result.total} (${pct}%).`);
+    const verb = result.mode === "practice" ? "Practice logged" : "Test scored";
+    toast(pct >= 70 ? "success" : "info", `${verb}: ${result.correct}/${result.total} (${pct}%).`);
   };
 
   const retake = (result: TestResult) => {
@@ -332,6 +349,7 @@ export default function App() {
         correctIndex: order.indexOf(it.correctIndex),
         explanation: it.explanation,
         tags: it.tags,
+        bankId: it.bankId ?? "unknown",
       };
     });
     setSession({
@@ -341,6 +359,7 @@ export default function App() {
       items: shuffle(items),
       startedAt: Date.now(),
       timeLimitSec: result.timeLimitSec,
+      mode: result.mode ?? "exam",
     });
     setViewKey("run");
   };
@@ -400,6 +419,7 @@ export default function App() {
         autoCreate={false}
         favorites={favorites}
         library={library}
+        stats={account.bankStats}
         onToggleFavorite={toggleFavorite}
         onPublish={publishBank}
         onUnpublish={unpublishBank}
@@ -420,6 +440,7 @@ export default function App() {
         autoCreate={param === "new"}
         favorites={favorites}
         library={library}
+        stats={account.bankStats}
         onToggleFavorite={toggleFavorite}
         onPublish={publishBank}
         onUnpublish={unpublishBank}

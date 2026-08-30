@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import type { Bank, SessionItem, TestSession } from "../lib/types";
 import { shuffle, uid } from "../lib/types";
 import { Btn, Chip, EmptyState, Field, SectionTitle, inputCls } from "./ui";
-import { IconPlay, IconShuffle, IconTimer, IconUpload, IconCheck, IconTarget, IconAlert } from "./icons";
+import { IconPlay, IconShuffle, IconTimer, IconUpload, IconCheck, IconTarget, IconAlert, IconPulse, IconDoc } from "./icons";
 
 function Toggle({ on, onClick, label, icon }: { on: boolean; onClick: () => void; label: string; icon: React.ReactNode }) {
   return (
@@ -25,6 +25,8 @@ function Toggle({ on, onClick, label, icon }: { on: boolean; onClick: () => void
   );
 }
 
+export type BuildMode = "practice" | "exam" | "timed";
+
 export default function BuilderView({
   banks,
   preselected,
@@ -36,17 +38,21 @@ export default function BuilderView({
   onStart: (session: TestSession) => void;
   onNav: (key: string) => void;
 }) {
-  const [selected, setSelected] = useState<Set<string>>(new Set(preselected ? [preselected] : banks.length === 1 ? [banks[0].id] : []));
+  const [initBank, initMode] = (preselected ?? "").split(":");
+  const [selected, setSelected] = useState<Set<string>>(new Set(initBank ? [initBank] : banks.length === 1 ? [banks[0].id] : []));
   const [count, setCount] = useState(10);
   const [shuffleQ, setShuffleQ] = useState(true);
   const [shuffleO, setShuffleO] = useState(true);
-  const [timeOn, setTimeOn] = useState(false);
+  const [mode, setMode] = useState<BuildMode>(initMode === "practice" || initMode === "timed" ? initMode : "exam");
   const [minutes, setMinutes] = useState(10);
   const [name, setName] = useState("");
   const [err, setErr] = useState<string | null>(null);
 
   useEffect(() => {
-    if (preselected) setSelected(new Set([preselected]));
+    if (!preselected) return;
+    const [b, m] = preselected.split(":");
+    if (b) setSelected(new Set([b]));
+    if (m === "practice" || m === "timed") setMode(m);
   }, [preselected]);
 
   const pool = useMemo(
@@ -71,7 +77,7 @@ export default function BuilderView({
 
   const start = () => {
     if (pool === 0) return setErr("Pick at least one bank that contains questions.");
-    if (timeOn && (minutes < 1 || minutes > 180)) return setErr("Time limit must be between 1 and 180 minutes.");
+    if (mode === "timed" && (minutes < 1 || minutes > 180)) return setErr("Time limit must be between 1 and 180 minutes.");
     const chosen = banks.filter((b) => selected.has(b.id));
     let items: SessionItem[] = [];
     for (const b of chosen) {
@@ -91,23 +97,23 @@ export default function BuilderView({
           correctIndex,
           explanation: q.explanation,
           tags: q.tags,
+          bankId: b.id,
         });
       }
     }
     if (shuffleQ) items = shuffle(items);
     items = items.slice(0, safeCount);
 
-    const auto =
-      "Practice — " +
-      chosen.map((b) => b.name).join(" + ").slice(0, 60) +
-      (timeOn ? ` (${minutes} min)` : "");
+    const label = mode === "practice" ? "Practice" : mode === "timed" ? "Timed exam" : "Exam";
+    const auto = `${label} — ${chosen.map((b) => b.name).join(" + ").slice(0, 54)}${mode === "timed" ? ` (${minutes} min)` : ""}`;
     onStart({
       id: uid(),
       name: name.trim() || auto,
       bankNames: chosen.map((b) => b.name),
       items,
       startedAt: Date.now(),
-      timeLimitSec: timeOn ? minutes * 60 : undefined,
+      timeLimitSec: mode === "timed" ? minutes * 60 : undefined,
+      mode: mode === "practice" ? "practice" : "exam",
     });
   };
 
@@ -169,8 +175,60 @@ export default function BuilderView({
             </div>
           </div>
 
+          {/* mode picker */}
           <div className="bg-card border border-line rounded-md p-5 anim-fade-up">
-            <h3 className="font-display font-bold text-ink mb-3">2 · Shape it</h3>
+            <h3 className="font-display font-bold text-ink mb-3">2 · Pick a mode</h3>
+            <div className="grid sm:grid-cols-3 gap-2.5">
+              {(
+                [
+                  { key: "practice", label: "Practice", desc: "Instant verdict — the answer and examiner's note appear the moment you submit each question.", icon: <IconPulse /> },
+                  { key: "exam", label: "Exam", desc: "Answer the whole paper, submit once, then review the marked script.", icon: <IconDoc /> },
+                  { key: "timed", label: "Timed exam", desc: "The full exam, but a clock runs and the paper auto-submits at zero.", icon: <IconTimer /> },
+                ] as const
+              ).map((m) => {
+                const on = mode === m.key;
+                return (
+                  <button
+                    key={m.key}
+                    onClick={() => setMode(m.key)}
+                    className={`text-left rounded-md border px-4 py-3.5 transition-all duration-150 cursor-pointer group ${
+                      on ? "border-moss bg-moss-soft/60 shadow-[inset_0_0_0_1px_#0e7c6b]" : "border-line-2 bg-card hover:border-moss/50 hover:-translate-y-0.5"
+                    }`}
+                  >
+                    <span className={`flex items-center justify-between text-[19px] ${on ? "text-moss" : "text-faint group-hover:text-moss"}`}>
+                      {m.icon}
+                      <span
+                        className={`w-4 h-4 rounded-full border-2 inline-flex items-center justify-center transition-colors ${
+                          on ? "border-moss bg-moss" : "border-line-2"
+                        }`}
+                      >
+                        {on && <span className="w-1.5 h-1.5 rounded-full bg-paper" />}
+                      </span>
+                    </span>
+                    <span className={`block font-display font-bold text-[15px] mt-2 ${on ? "text-moss-deep" : "text-ink"}`}>{m.label}</span>
+                    <span className="block text-[12px] text-mute leading-snug mt-1">{m.desc}</span>
+                  </button>
+                );
+              })}
+            </div>
+            {mode === "timed" && (
+              <div className="flex items-center gap-3 mt-4 anim-pop border-t border-dashed border-line-2 pt-4">
+                <IconTimer className="text-moss text-lg shrink-0" />
+                <input
+                  type="number"
+                  min={1}
+                  max={180}
+                  value={minutes}
+                  onChange={(e) => setMinutes(Number(e.target.value))}
+                  className={`${inputCls} w-24 text-center font-mono`}
+                />
+                <span className="text-sm text-mute font-medium">minutes on the clock — roughly {Math.max(1, Math.round((minutes * 60) / Math.max(safeCount, 1)))}s per question</span>
+              </div>
+            )}
+          </div>
+
+          <div className="bg-card border border-line rounded-md p-5 anim-fade-up">
+            <h3 className="font-display font-bold text-ink mb-3">3 · Shape it</h3>
             <div className="space-y-4">
               <div>
                 <div className="flex items-baseline justify-between mb-1.5">
@@ -194,23 +252,6 @@ export default function BuilderView({
               <div className="grid sm:grid-cols-2 gap-2.5">
                 <Toggle on={shuffleQ} onClick={() => setShuffleQ((v) => !v)} label="Shuffle question order" icon={<IconShuffle />} />
                 <Toggle on={shuffleO} onClick={() => setShuffleO((v) => !v)} label="Shuffle A/B/C options" icon={<IconShuffle />} />
-              </div>
-
-              <div className="grid sm:grid-cols-[auto_1fr] gap-2.5 items-center">
-                <Toggle on={timeOn} onClick={() => setTimeOn((v) => !v)} label="Time limit" icon={<IconTimer />} />
-                {timeOn && (
-                  <div className="flex items-center gap-2 anim-pop">
-                    <input
-                      type="number"
-                      min={1}
-                      max={180}
-                      value={minutes}
-                      onChange={(e) => setMinutes(Number(e.target.value))}
-                      className={`${inputCls} w-24 text-center font-mono`}
-                    />
-                    <span className="text-sm text-mute font-medium">minutes · auto-submits at zero</span>
-                  </div>
-                )}
               </div>
             </div>
           </div>
@@ -236,12 +277,16 @@ export default function BuilderView({
                 </dd>
               </div>
               <div className="flex justify-between gap-3">
+                <dt className="text-paper/50">Mode</dt>
+                <dd className="font-mono">{mode === "practice" ? "practice · instant" : mode === "timed" ? "timed exam" : "exam"}</dd>
+              </div>
+              <div className="flex justify-between gap-3">
                 <dt className="text-paper/50">Length</dt>
                 <dd className="font-mono">{pool === 0 ? 0 : safeCount} questions</dd>
               </div>
               <div className="flex justify-between gap-3">
                 <dt className="text-paper/50">Time</dt>
-                <dd className="font-mono">{timeOn ? `${minutes} min` : "untimed"}</dd>
+                <dd className="font-mono">{mode === "timed" ? `${minutes} min` : "untimed"}</dd>
               </div>
               <div className="flex justify-between gap-3">
                 <dt className="text-paper/50">Shuffle</dt>

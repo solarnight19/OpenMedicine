@@ -1,4 +1,4 @@
-import type { Bank, LibraryEntry, Question, TestResult, User } from "./types";
+import type { Bank, BankStats, LibraryEntry, Question, TestResult, User } from "./types";
 import { uid } from "./types";
 
 const USERS_KEY = "openmedicine.users.v1";
@@ -10,6 +10,8 @@ export interface AccountData {
   banks: Bank[];
   results: TestResult[];
   favorites: string[];
+  /** Lifetime practice/exam tallies per bank id. */
+  bankStats: Record<string, BankStats>;
 }
 
 /** Demo-grade hash — accounts live only in this browser. */
@@ -51,10 +53,15 @@ export function loadAccount(userId: string): AccountData {
     const raw = localStorage.getItem(accountKey(userId));
     if (raw) {
       const d = JSON.parse(raw) as Partial<AccountData>;
-      return { banks: d.banks ?? [], results: d.results ?? [], favorites: d.favorites ?? [] };
+      return {
+        banks: d.banks ?? [],
+        results: (d.results ?? []).map((r) => (r.mode ? r : { ...r, mode: "exam" as const })),
+        favorites: d.favorites ?? [],
+        bankStats: d.bankStats ?? {},
+      };
     }
   } catch { /* ignore */ }
-  return { banks: [], results: [], favorites: [] };
+  return { banks: [], results: [], favorites: [], bankStats: {} };
 }
 
 export function saveAccount(userId: string, data: AccountData) {

@@ -2,7 +2,7 @@ import { useState } from "react";
 import type { TestResult } from "../lib/types";
 import { fmtDate, fmtDuration, LETTERS } from "../lib/types";
 import { Btn, Chip, EmptyState, ScoreRing } from "./ui";
-import { IconCheck, IconX, IconFlag, IconChevronL, IconShuffle, IconTrash, IconArrowR, IconAlert, IconInbox, IconInfo } from "./icons";
+import { IconCheck, IconX, IconFlag, IconChevronL, IconShuffle, IconTrash, IconArrowR, IconAlert, IconInbox, IconInfo, IconPulse, IconTimer, IconDoc } from "./icons";
 import { Confirm } from "./BanksView";
 
 /* ================= Results / review ================= */
@@ -54,9 +54,18 @@ export default function ResultsView({
             </h1>
             <p className="font-display font-bold text-moss mt-1">{verdict}</p>
             <div className="flex flex-wrap justify-center sm:justify-start gap-2 mt-3">
+              <Chip tone={result.mode === "practice" ? "cobalt" : "amber"}>
+                {result.mode === "practice" ? (
+                  <><IconPulse /> practice session</>
+                ) : result.timeLimitSec != null ? (
+                  <><IconTimer /> timed exam</>
+                ) : (
+                  <><IconDoc /> exam</>
+                )}
+              </Chip>
               <Chip tone="moss"><IconCheck /> {result.correct} correct</Chip>
               <Chip tone="pen"><IconX /> {wrong} wrong</Chip>
-              <Chip tone="amber">{result.skipped} skipped</Chip>
+              {result.mode !== "practice" && <Chip tone="amber">{result.skipped} skipped</Chip>}
               {flagged > 0 && <Chip><IconFlag /> {flagged} flagged</Chip>}
             </div>
           </div>
@@ -249,7 +258,16 @@ export function HistoryView({
                   {pct}
                 </span>
                 <div className="flex-1 min-w-0">
-                  <div className="font-display font-bold text-[15.5px] text-ink truncate group-hover:text-moss transition-colors">{r.name}</div>
+                  <div className="flex items-center gap-2 min-w-0">
+                    <div className="font-display font-bold text-[15.5px] text-ink truncate group-hover:text-moss transition-colors">{r.name}</div>
+                    {r.mode === "practice" ? (
+                      <Chip tone="cobalt" className="text-[9.5px]! shrink-0"><IconPulse /> practice</Chip>
+                    ) : r.timeLimitSec != null ? (
+                      <Chip tone="amber" className="text-[9.5px]! shrink-0"><IconTimer /> timed</Chip>
+                    ) : (
+                      <Chip className="text-[9.5px]! shrink-0"><IconDoc /> exam</Chip>
+                    )}
+                  </div>
                   <div className="font-mono text-[10.5px] text-faint mt-0.5">
                     {fmtDate(r.takenAt)} · {r.correct}/{r.total} correct · {fmtDuration(r.durationSec)}
                     {r.timeLimitSec ? ` / ${fmtDuration(r.timeLimitSec)}` : ""} · {r.bankNames.join(" + ").slice(0, 48)}

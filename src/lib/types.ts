@@ -41,6 +41,8 @@ export interface LibraryEntry {
   questions: Question[];
 }
 
+export type TestMode = "practice" | "exam";
+
 export interface ResultItem {
   prompt: string;
   options: string[];
@@ -49,6 +51,7 @@ export interface ResultItem {
   flagged: boolean;
   explanation?: string;
   tags: string[];
+  bankId?: string;
 }
 
 export interface TestResult {
@@ -61,6 +64,7 @@ export interface TestResult {
   skipped: number;
   durationSec: number;
   timeLimitSec?: number;
+  mode: TestMode;
   items: ResultItem[];
 }
 
@@ -71,6 +75,7 @@ export interface SessionItem {
   correctIndex: number;
   explanation?: string;
   tags: string[];
+  bankId: string;
 }
 
 export interface TestSession {
@@ -80,6 +85,14 @@ export interface TestSession {
   items: SessionItem[];
   startedAt: number;
   timeLimitSec?: number;
+  mode: TestMode;
+}
+
+export interface BankStats {
+  attempted: number;
+  correct: number;
+  incorrect: number;
+  lastAt: number;
 }
 
 export interface ParsedRow {
