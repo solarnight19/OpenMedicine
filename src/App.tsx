@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useCallback } from "react";
 import type { Bank, LibraryEntry, ParsedRow, Question, SessionItem, TestResult, TestSession, User } from "./lib/types";
 import { BANK_COLORS, shuffle, uid } from "./lib/types";
 import type { AccountData } from "./lib/data";
@@ -49,35 +49,35 @@ export default function App() {
   }, [account, user]);
   useEffect(() => saveLibrary(library), [library]);
 
-  const patch = (fn: (a: AccountData) => AccountData) => setAccount((a) => (a ? fn(a) : a));
+  const patch = useCallback((fn: (a: AccountData) => AccountData) => setAccount((a) => (a ? fn(a) : a)), []);
 
-  const toast = (kind: ToastMsg["kind"], text: string) => {
+  const toast = useCallback((kind: ToastMsg["kind"], text: string) => {
     const id = Date.now() + Math.floor(Math.random() * 1000);
     setToasts((t) => [...t.slice(-3), { id, kind, text }]);
-  };
-  const dismissToast = (id: number) => setToasts((t) => t.filter((x) => x.id !== id));
-  const nav = (key: string) => setViewKey(key);
+  }, []);
+  const dismissToast = useCallback((id: number) => setToasts((t) => t.filter((x) => x.id !== id)), []);
+  const nav = useCallback((key: string) => setViewKey(key), []);
 
   /* ---------- auth ---------- */
 
-  const enter = (u: User, data: AccountData, greeting: string) => {
+  const enter = useCallback((u: User, data: AccountData, greeting: string) => {
     saveSession(u.id);
     setUserId(u.id);
     setAccount(data);
     setViewKey("overview");
     toast("success", greeting);
-  };
+  }, [toast]);
 
-  const handleLogin = (email: string, pw: string): string | null => {
+  const handleLogin = useCallback((email: string, pw: string): string | null => {
     if (!/^\S+@\S+\.\S+$/.test(email)) return "That email doesn't look valid.";
     const u = users.find((x) => x.email.toLowerCase() === email.toLowerCase());
     if (!u) return "No account matches that email — try creating one.";
     if (u.pw !== hashPw(pw)) return "Incorrect password for that account.";
     enter(u, loadAccount(u.id), `Welcome back, ${u.name.split(" ")[0]} — chart reopened.`);
     return null;
-  };
+  }, [users, enter]);
 
-  const handleSignup = (name: string, email: string, pw: string, seedSamples: boolean): string | null => {
+  const handleSignup = useCallback((name: string, email: string, pw: string, seedSamples: boolean): string | null => {
     if (!/^\S+@\S+\.\S+$/.test(email)) return "That email doesn't look valid.";
     if (users.some((x) => x.email.toLowerCase() === email.toLowerCase()))
       return "An account with that email already exists — sign in instead.";
@@ -95,9 +95,9 @@ export default function App() {
     });
     enter(u, data, `Account created — welcome to OpenMedicine, ${name.split(" ")[0]}.`);
     return null;
-  };
+  }, [users, enter]);
 
-  const handleDemo = () => {
+  const handleDemo = useCallback(() => {
     const email = "demo@openmedicine.local";
     let u = users.find((x) => x.email === email);
     let data: AccountData;
@@ -114,16 +114,16 @@ export default function App() {
       saveAccount(u.id, data);
     }
     enter(u, data, "Signed into the demo ward — two sample banks are on file.");
-  };
+  }, [users, library, enter]);
 
-  const handleLogout = () => {
+  const handleLogout = useCallback(() => {
     saveSession(null);
     setUserId(null);
     setAccount(null);
     setSession(null);
     setViewKey("overview");
     toast("info", "Signed out — the chart is closed.");
-  };
+  }, [toast]);
 
   /* ---------- banks & questions ---------- */
 
