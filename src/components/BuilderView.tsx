@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
-import type { Bank, SessionItem, TestSession } from "../lib/types";
+import type { Bank, Question, SessionItem, TestSession } from "../lib/types";
 import { shuffle, uid } from "../lib/types";
 import { Btn, Chip, EmptyState, Field, SectionTitle, inputCls } from "./ui";
-import { IconPlay, IconShuffle, IconTimer, IconUpload, IconCheck, IconTarget, IconAlert, IconPulse, IconDoc } from "./icons";
+import { IconPlay, IconShuffle, IconTimer, IconUpload, IconCheck, IconTarget, IconAlert, IconPulse, IconDoc, IconFilter } from "./icons";
 
 function Toggle({ on, onClick, label, icon }: { on: boolean; onClick: () => void; label: string; icon: React.ReactNode }) {
   return (
@@ -27,6 +27,27 @@ function Toggle({ on, onClick, label, icon }: { on: boolean; onClick: () => void
 
 export type BuildMode = "practice" | "exam" | "timed";
 
+/** Extract all unique topics from selected banks */
+function extractTopics(banks: Bank[], selectedIds: Set<string>): string[] {
+  const topicSet = new Set<string>();
+  for (const bank of banks) {
+    if (selectedIds.has(bank.id)) {
+      for (const q of bank.questions) {
+        for (const tag of q.tags) {
+          topicSet.add(tag);
+        }
+      }
+    }
+  }
+  return Array.from(topicSet).sort((a, b) => a.localeCompare(b));
+}
+
+/** Filter questions by selected topics */
+function filterQuestionsByTopics(questions: Question[], selectedTopics: Set<string>): Question[] {
+  if (selectedTopics.size === 0) return questions;
+  return questions.filter((q) => q.tags.some((tag) => selectedTopics.has(tag)));
+}
+
 export default function BuilderView({
   banks,
   preselected,
@@ -40,6 +61,7 @@ export default function BuilderView({
 }) {
   const [initBank, initMode] = (preselected ?? "").split(":");
   const [selected, setSelected] = useState<Set<string>>(new Set(initBank ? [initBank] : banks.length === 1 ? [banks[0].id] : []));
+  const [selectedTopics, setSelectedTopics] = useState<Set<string>>(new Set());
   const [count, setCount] = useState(10);
   const [shuffleQ, setShuffleQ] = useState(true);
   const [shuffleO, setShuffleO] = useState(true);
@@ -55,15 +77,33 @@ export default function BuilderView({
     if (m === "practice" || m === "timed") setMode(m);
   }, [preselected]);
 
+  // Reset topic selection when bank selection changes
+  useEffect(() => {
+    setSelectedTopics(new Set());
+  }, [selected]);
+
+  const availableTopics = useMemo(() => extractTopics(banks, selected), [banks, selected]);
+
   const pool = useMemo(
     () => banks.filter((b) => selected.has(b.id)).reduce((n, b) => n + b.questions.length, 0),
     [banks, selected]
   );
 
-  const safeCount = Math.min(count, Math.max(pool, 1));
+  const filteredPool = useMemo(() => {
+    let total = 0;
+    for (const bank of banks) {
+      if (selected.has(bank.id)) {
+        const filtered = filterQuestionsByTopics(bank.questions, selectedTopics);
+        total += filtered.length;
+      }
+    }
+    return total;
+  }, [banks, selected, selectedTopics]);
+
+  const safeCount = Math.min(count, Math.max(filteredPool, 1));
   useEffect(() => {
-    if (count > pool && pool > 0) setCount(pool);
-  }, [pool, count]);
+    if (count > filteredPool && filteredPool > 0) setCount(filteredPool);
+  }, [filteredPool, count]);
 
   const toggleBank = (id: string) => {
     setErr(null);
@@ -75,13 +115,24 @@ export default function BuilderView({
     });
   };
 
+  const toggleTopic = (topic: string) => {
+    setSelectedTopics((s) => {
+      const n = new Set(s);
+      if (n.has(topic)) n.delete(topic);
+      else n.add(topic);
+      return n;
+    });
+  };
+
   const start = () => {
-    if (pool === 0) return setErr("Pick at least one bank that contains questions.");
+    if (filteredPool === 0) return setErr("Pick at least one bank that contains questions.");
+    if (selectedTopics.size > 0 && filteredPool === 0) return setErr("No questions match the selected topics.");
     if (mode === "timed" && (minutes < 1 || minutes > 180)) return setErr("Time limit must be between 1 and 180 minutes.");
     const chosen = banks.filter((b) => selected.has(b.id));
     let items: SessionItem[] = [];
     for (const b of chosen) {
-      for (const q of b.questions) {
+      const qs = filterQuestionsByTopics(b.questions, selectedTopics);
+      for (const q of qs) {
         let options = q.options;
         let correctIndex = q.correctIndex;
         if (shuffleO) {
@@ -144,7 +195,7 @@ export default function BuilderView({
           <div className="bg-card border border-line rounded-md p-5 anim-fade-up">
             <div className="flex items-center justify-between mb-3">
               <h3 className="font-display font-bold text-ink">1 · Choose banks</h3>
-              <Chip tone={pool > 0 ? "moss" : "neutral"}>{pool} in pool</Chip>
+              <Chip tone={filteredPool > 0 ? "moss" : "neutral"}>{filteredPool} in pool</Chip>
             </div>
             <div className="space-y-2">
               {banks.map((b) => {
@@ -174,6 +225,47 @@ export default function BuilderView({
               })}
             </div>
           </div>
+
+          {/* topic filter */}
+          {availableTopics.length > 0 && (
+            <div className="bg-card border border-line rounded-md p-5 anim-fade-up">
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="font-display font-bold text-ink flex items-center gap-2">
+                  <IconFilter className="text-moss text-lg" />
+                  Filter by topics
+                </h3>
+                <div className="flex items-center gap-2">
+                  <Chip tone={selectedTopics.size === 0 ? "moss" : "neutral"}>{selectedTopics.size === 0 ? "All" : `${selectedTopics.size} selected`}</Chip>
+                  {selectedTopics.size > 0 && (
+                    <button
+                      onClick={() => setSelectedTopics(new Set())}
+                      className="text-xs font-medium text-mute hover:text-ink underline"
+                    >
+                      Clear all
+                    </button>
+                  )}
+                </div>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {availableTopics.map((topic) => {
+                  const on = selectedTopics.has(topic);
+                  return (
+                    <button
+                      key={topic}
+                      onClick={() => toggleTopic(topic)}
+                      className={`px-3 py-1.5 rounded-full text-xs font-medium border transition-all ${
+                        on
+                          ? "border-moss bg-moss-soft/60 text-moss-deep"
+                          : "border-line-2 bg-card text-mute hover:border-moss/50 hover:bg-moss-soft/30"
+                      }`}
+                    >
+                      {topic}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
 
           {/* mode picker */}
           <div className="bg-card border border-line rounded-md p-5 anim-fade-up">
@@ -234,17 +326,17 @@ export default function BuilderView({
                 <div className="flex items-baseline justify-between mb-1.5">
                   <span className="font-mono text-[11px] uppercase tracking-[0.14em] text-mute font-medium">Questions</span>
                   <span className="font-display font-extrabold text-xl text-moss tabular-nums">
-                    {pool === 0 ? 0 : safeCount}
-                    <span className="text-[13px] font-body font-medium text-faint"> / {pool} available</span>
+                    {filteredPool === 0 ? 0 : safeCount}
+                    <span className="text-[13px] font-body font-medium text-faint"> / {filteredPool} available</span>
                   </span>
                 </div>
                 <input
                   type="range"
                   min={1}
-                  max={Math.max(pool, 1)}
-                  value={pool === 0 ? 1 : safeCount}
+                  max={Math.max(filteredPool, 1)}
+                  value={filteredPool === 0 ? 1 : safeCount}
                   onChange={(e) => setCount(Number(e.target.value))}
-                  disabled={pool === 0}
+                  disabled={filteredPool === 0}
                   className="w-full disabled:opacity-40"
                 />
               </div>
@@ -276,13 +368,21 @@ export default function BuilderView({
                   {banks.filter((b) => selected.has(b.id)).map((b) => b.name).join(", ") || "—"}
                 </dd>
               </div>
+              {selectedTopics.size > 0 && (
+                <div className="flex justify-between gap-3">
+                  <dt className="text-paper/50">Topics</dt>
+                  <dd className="text-right font-medium max-w-[60%] text-moss">
+                    {Array.from(selectedTopics).join(", ")}
+                  </dd>
+                </div>
+              )}
               <div className="flex justify-between gap-3">
                 <dt className="text-paper/50">Mode</dt>
                 <dd className="font-mono">{mode === "practice" ? "practice · instant" : mode === "timed" ? "timed exam" : "exam"}</dd>
               </div>
               <div className="flex justify-between gap-3">
                 <dt className="text-paper/50">Length</dt>
-                <dd className="font-mono">{pool === 0 ? 0 : safeCount} questions</dd>
+                <dd className="font-mono">{filteredPool === 0 ? 0 : safeCount} questions</dd>
               </div>
               <div className="flex justify-between gap-3">
                 <dt className="text-paper/50">Time</dt>
@@ -302,7 +402,7 @@ export default function BuilderView({
               </div>
             )}
 
-            <Btn size="lg" className="w-full mt-5" onClick={start} disabled={pool === 0}>
+            <Btn size="lg" className="w-full mt-5" onClick={start} disabled={filteredPool === 0}>
               <IconPlay /> Start test
             </Btn>
             <p className="font-mono text-[9.5px] uppercase tracking-[0.18em] text-paper/35 text-center mt-3">

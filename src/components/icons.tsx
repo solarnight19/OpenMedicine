@@ -283,3 +283,9 @@ export const IconPulse = (p: P) => (
     <path d="M3.5 12h3.7l1.7-4.5 2.9 9 2-4.5h6.7" />
   </Base>
 );
+
+export const IconFilter = (p: P) => (
+  <Base {...p}>
+    <path d="M3.5 5.5h17L14 13.5v5l-4 2v-7z" />
+  </Base>
+);
